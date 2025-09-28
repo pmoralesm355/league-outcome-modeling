@@ -105,8 +105,9 @@ def main():
     fixture = generar_calendario_doble_vuelta(teams)
 
     # Teoría exacta (Skellam con scipy)
+    home_adv_val = 1.05
     E_theo, V_theo = puntos_teoricos_temporada(
-        teams, gf, ga, fixture, home_adv=1.05
+        teams, gf, ga, fixture, home_adv=home_adv_val
     )
 
     # Monte Carlo: 10,000 temporadas (un solo RNG; sin reseed)
@@ -117,7 +118,7 @@ def main():
     champ_points = np.zeros(S, dtype=int)
 
     for s in range(S):
-        pts, champ_idx = simular_temporada(teams, gf, ga, fixture, rng, home_adv=1.05)
+        pts, champ_idx = simular_temporada(teams, gf, ga, fixture, rng, home_adv=home_adv_val)
         pts_all[:, s] = pts
         champs[champ_idx] += 1
         champ_points[s] = pts.max()
@@ -133,6 +134,13 @@ def main():
 
     summary["mean_diff"] = summary["mean_points_mc"] - summary["mean_points_theory"]
     summary["var_diff"]  = summary["var_points_mc"]  - summary["var_points_theory"]
+
+    summary["seasons"] = S
+    summary["avg_champion_points_mc"] = champ_points.mean()
+    summary["std_champion_points_mc"] = champ_points.std(ddof=1)
+    summary["seed"] = cfg.semilla_aleatoria
+    summary["home_adv"] = home_adv_val
+    summary["n_teams"] = len(teams)
 
     out_csv = root / "results_summary.csv"
     summary.to_csv(out_csv, index=False)
