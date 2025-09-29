@@ -119,7 +119,10 @@ def main():
         titulo="Simulación (10,000 temporadas): MC vs Teoría",
         max_rows=None,
         note=f"Avg champion points = {champ_points.mean():.2f} | Seed = {seed}",
-        fontsize=10
+        fontsize=9,
+        table_top=0.88, 
+        row_scale=1.36,
+        title_pad=20
     )
 
     # (4) MC: media vs varianza (dispersión)
