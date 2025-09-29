@@ -1,5 +1,7 @@
 # src/main.py
 from pathlib import Path
+import os
+from time import time_ns
 import numpy as np
 import pandas as pd
 
@@ -30,7 +32,6 @@ def _equipos_desde_matches(df_matches: pd.DataFrame) -> pd.DataFrame:
     agg['gf_per_match'] = agg['gf'] / agg['matches']
     agg['ga_per_match'] = agg['ga'] / agg['matches']
     out = agg[['team','gf_per_match','ga_per_match']].sort_values('team').reset_index(drop=True)
-    # Asegurand 20 equipos
     if len(out) != 20:
         print(f"[WARN] Se detectaron {len(out)} equipos; se continuará con todos.")
     return out
@@ -42,12 +43,10 @@ def cargar_teams(root: Path, rng: np.random.Generator) -> pd.DataFrame:
       2) Un CSV de partidos en data/ que contenga columnas SP1 → se construye teams
       3) Sintético (fallback)
     """
-    # 1) teams.csv
     teams_csv = root / "data" / "teams.csv"
     if teams_csv.exists():
         return pd.read_csv(teams_csv)
 
-    # 2) buscar un SP1-like en data/
     data_dir = (root / "data")
     sp1_candidate = None
     if data_dir.exists():
@@ -62,12 +61,10 @@ def cargar_teams(root: Path, rng: np.random.Generator) -> pd.DataFrame:
     if sp1_candidate:
         df_matches = pd.read_csv(sp1_candidate)
         teams_df = _equipos_desde_matches(df_matches)
-        # guardar también como teams.csv para corridas futuras
         teams_df.to_csv(teams_csv, index=False)
         print(f"[INFO] Construido: {teams_csv}")
         return teams_df
 
-    # 3) Fallback sintético
     print("[WARN] No se encontró data/teams.csv ni CSV de partidos compatible; se usarán equipos sintéticos.")
     n = 20
     return pd.DataFrame({
@@ -91,7 +88,11 @@ def simular_temporada(teams, gf, ga, fixture, rng, home_adv=1.05):
 
 def main():
     cfg = ConfiguracionSimulacion()
-    rng = crear_generador_aleatorio(cfg.semilla_aleatoria)  # UNA sola semilla → un solo RNG
+
+    # Semilla distinta por ejecución (override opcional con SIM_SEED)
+    seed = int(os.getenv("SIM_SEED", time_ns() & 0xFFFFFFFF))
+    rng = crear_generador_aleatorio(seed)
+    print(f"[INFO] Seed used: {seed}")
 
     root = Path(__file__).resolve().parents[1]
     df_teams = cargar_teams(root, rng)
@@ -135,10 +136,11 @@ def main():
     summary["mean_diff"] = summary["mean_points_mc"] - summary["mean_points_theory"]
     summary["var_diff"]  = summary["var_points_mc"]  - summary["var_points_theory"]
 
+    # Meta incrustada
     summary["seasons"] = S
     summary["avg_champion_points_mc"] = champ_points.mean()
     summary["std_champion_points_mc"] = champ_points.std(ddof=1)
-    summary["seed"] = cfg.semilla_aleatoria
+    summary["seed"] = seed
     summary["home_adv"] = home_adv_val
     summary["n_teams"] = len(teams)
 
