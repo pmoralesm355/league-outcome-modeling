@@ -17,14 +17,42 @@ def cargar_dataset_poker(url: str = URL_POKER_ZIP):
     return train, test
 
 def muestrear_test(test_df: pd.DataFrame, tamano: int, semilla: int | None = None) -> pd.DataFrame:
-    """Devuelve una muestra del test estratificada por 'label' (fallback aleatorio si no es posible)."""
+    """Devuelve una muestra del test estratificada por 'label' (y, si es posible, con ≥1 instancia por clase)."""
     tamano = min(tamano, len(test_df))
+    if tamano <= 0:
+        return test_df.head(0).copy()
+
+    labels_col = "label"
+    clases = test_df[labels_col].unique()
+
+    # (tamaño) garantiza al menos 1 por clase
+    if tamano >= len(clases):
+        base = test_df.groupby(labels_col, group_keys=False).head(1)
+        resto = test_df.drop(base.index)
+        faltan = tamano - len(base)
+
+        if faltan > 0:
+            try:
+                from sklearn.model_selection import train_test_split
+                extra, _ = train_test_split(
+                    resto, train_size=faltan,
+                    stratify=resto[labels_col], random_state=semilla
+                )
+            except Exception:
+                extra = resto.sample(n=faltan, random_state=semilla)
+            muestra = pd.concat([base, extra], ignore_index=False)
+        else:
+            muestra = base
+
+        return muestra.sample(frac=1, random_state=semilla).reset_index(drop=True)
+
+    # (no suf tamaño) estratifica; si falla, aleatorio
     try:
         from sklearn.model_selection import train_test_split
-        # train_size = tamano -> devolvemos 'sample' con ese tamaño
         sample, _ = train_test_split(
-            test_df, train_size=tamano, stratify=test_df["label"], random_state=semilla
+            test_df, train_size=tamano,
+            stratify=test_df[labels_col], random_state=semilla
         )
-        return sample
+        return sample.reset_index(drop=True)
     except Exception:
-        return test_df.sample(n=tamano, random_state=semilla) 
+        return test_df.sample(n=tamano, random_state=semilla).reset_index(drop=True)
