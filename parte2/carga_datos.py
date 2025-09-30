@@ -27,4 +27,4 @@ def muestrear_test(test_df: pd.DataFrame, tamano: int, semilla: int | None = Non
         )
         return sample
     except Exception:
-        return test_df.sample(n=tamano, random_state=semilla)
+        return test_df.sample(n=tamano, random_state=semilla) 
