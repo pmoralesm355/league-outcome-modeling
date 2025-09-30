@@ -107,22 +107,46 @@ def main():
         "seasons", "avg_champion_points_mc", "std_champion_points_mc",
         "seed", "home_adv", "n_teams"
     ]
+    pretty_cols = {
+        "team": "Equipo",
+        "mean_points_mc": "Media MC",
+        "var_points_mc": "Var MC",
+        "champ_prob": "P(campeón)",
+        "mean_points_theory": "Media Teoría",
+        "var_points_theory": "Var Teoría",
+        "mean_diff": "Δ Media (MC−T)",
+        "var_diff": "Δ Var (MC−T)",
+        "seasons": "Temporadas",
+        "avg_champion_points_mc": "Media pts campeón (MC)",
+        "std_champion_points_mc": "Desv. pts campeón (MC)",
+        "seed": "Semilla",
+        "home_adv": "Ventaja local",
+        "n_teams": "# equipos",
+    }
+
+    summary_display = summary[cols_order].rename(columns=pretty_cols)
+
+    note_text = (
+        f"Temporadas: {S:,}  ·  Avg pts campeón (MC): {champ_points.mean():.2f}  ·  "
+        f"Desv: {champ_points.std(ddof=1):.3f}  ·  Seed: {seed}  ·  "
+        f"Ventaja local: {home_adv_val:.3f}  ·  #equipos: {len(teams)}"
+    )
+
     guardar_dataframe_como_tabla_png(
-        summary[cols_order].round({
-            "mean_points_mc": 3, "var_points_mc": 3, "champ_prob": 3,
-            "mean_points_theory": 3, "var_points_theory": 3,
-            "mean_diff": 3, "var_diff": 3,
-            "avg_champion_points_mc": 3, "std_champion_points_mc": 3,
-            "home_adv": 2
+        summary_display.round({
+            "Media MC": 3, "Var MC": 3, "P(campeón)": 3,
+            "Media Teoría": 3, "Var Teoría": 3,
+            "Δ Media (MC−T)": 3, "Δ Var (MC−T)": 3,
+            "Media pts campeón (MC)": 3, "Desv. pts campeón (MC)": 3,
+            "Ventaja local": 2
         }),
         out_dir / "03_simulation_summary_table.png",
         titulo="Simulación (10,000 temporadas): MC vs Teoría",
         max_rows=None,
-        note=f"Avg champion points = {champ_points.mean():.2f} | Seed = {seed}",
-        fontsize=9,
-        table_top=0.88, 
-        row_scale=1.36,
-        title_pad=20
+        fontsize=10,          
+        table_top=0.84,       
+        row_scale=1.28,       
+        title_pad=24          
     )
 
     # (4) MC: media vs varianza (dispersión)

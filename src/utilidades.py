@@ -14,10 +14,15 @@ def asegurar_directorio(ruta: str | Path) -> Path:
 
 #  Helpers  tabl 
 
-def _figsize_for_table(n_rows: int, n_cols: int, base_w: float = 2.0, base_h: float = 0.5):
+def _figsize_for_table(
+    n_rows: int,
+    n_cols: int,
+    base_w: float = 3.0,   
+    base_h: float = 0.55
+):
 
-    width  = max(10, min(24, base_w + 0.90 * n_cols))
-    height = max(4,  min(30, base_h + 0.40 * n_rows))
+    width  = max(12, min(28, base_w + 1.20 * n_cols))
+    height = max(4.5, min(32, base_h + 0.42 * n_rows))
     return (width, height)
 
 def guardar_dataframe_como_tabla_png(
@@ -27,11 +32,16 @@ def guardar_dataframe_como_tabla_png(
     max_rows: int | None = None,
     note: str | None = None,
     fontsize: int = 10,
-
-    table_top: float = 0.92,    
-    row_scale: float = 1.32, 
-    title_pad: int = 16        
+    table_top: float = 0.92,
+    row_scale: float = 1.32,
+    title_pad: int = 16,
+    wrap_headers: bool = True,
+    wrap_cells: bool = False,        
+    header_width_chars: int = 14,    
+    cell_width_chars: int = 18        
 ):
+    import textwrap
+
     path_png = Path(path_png)
     df_show = df.copy()
 
@@ -39,7 +49,6 @@ def guardar_dataframe_como_tabla_png(
     if max_rows is not None and len(df_show) > max_rows:
         df_show = df_show.head(max_rows).copy()
         truncado = True
-
 
     def _fmt(x):
         if isinstance(x, float):
@@ -49,6 +58,19 @@ def guardar_dataframe_como_tabla_png(
         df_show = df_show.map(_fmt)
     except AttributeError:
         df_show = df_show.applymap(_fmt)
+
+    def _wrap_text(s: str, width: int) -> str:
+        return "\n".join(textwrap.wrap(str(s), width=width, break_long_words=False, replace_whitespace=False)) or str(s)
+
+    col_labels = list(df_show.columns)
+    if wrap_headers:
+        col_labels_wrapped = [_wrap_text(c, header_width_chars) for c in col_labels]
+    else:
+        col_labels_wrapped = col_labels
+
+    if wrap_cells:
+        for c in df_show.columns:
+            df_show[c] = df_show[c].apply(lambda v: _wrap_text(v, cell_width_chars))
 
     fig_w, fig_h = _figsize_for_table(len(df_show), len(df_show.columns))
     fig, ax = plt.subplots(figsize=(fig_w, fig_h), dpi=240)
@@ -60,25 +82,47 @@ def guardar_dataframe_como_tabla_png(
 
     tbl = ax.table(
         cellText=df_show.values,
-        colLabels=list(df_show.columns),
+        colLabels=col_labels_wrapped,
         loc="center",
         cellLoc="center",
         colLoc="center",
         edges="closed",
-        bbox=[0.0, 0.0, 1.0, table_top] 
+        bbox=[0.0, 0.0, 1.0, table_top]
     )
     tbl.auto_set_font_size(False)
     tbl.set_fontsize(fontsize)
     tbl.scale(1.0, row_scale)
 
-    # Estilo
     for (r, c), cell in tbl.get_celld().items():
         cell.set_edgecolor("#DDDDDD")
+        cell.get_text().set_wrap(True)   
         if r == 0:
             cell.set_facecolor("#F0F0F0")
             cell.set_text_props(weight="bold")
         else:
             cell.set_facecolor("#FFFFFF" if (r % 2) else "#FBFBFB")
+
+    import numpy as _np
+    col_lengths = []
+    for j, name in enumerate(col_labels_wrapped):
+        header_len = len(str(name).replace("\n", " "))
+        data_len = int(_np.mean([len(str(x)) for x in df_show.iloc[:min(50, len(df_show)), j].astype(str)])) if len(df_show) else 1
+        col_lengths.append(max(header_len, data_len, 4))
+
+    col_lengths = _np.array(col_lengths, dtype=float)
+    widths = col_lengths / col_lengths.sum()
+    widths = _np.clip(widths, 0.04, 0.20)
+    widths = widths / widths.sum()
+
+    try:
+        tbl.auto_set_column_width(col=list(range(len(col_labels_wrapped))))  
+    except Exception:
+        pass
+
+    for j, w in enumerate(widths):
+        for i in range(len(df_show) + 1):  
+            cell = tbl[i, j]
+            cell.set_width(w)
 
     if truncado or note:
         texto = []
@@ -86,7 +130,6 @@ def guardar_dataframe_como_tabla_png(
         if note:     texto.append(note)
         ax.text(0.5, 0.015, "  ·  ".join(texto), transform=ax.transAxes,
                 ha="center", va="bottom", fontsize=fontsize-1, color="#444444")
-
 
     fig.tight_layout(rect=[0, 0, 1, 0.965])
     path_png.parent.mkdir(parents=True, exist_ok=True)
