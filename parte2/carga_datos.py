@@ -17,5 +17,14 @@ def cargar_dataset_poker(url: str = URL_POKER_ZIP):
     return train, test
 
 def muestrear_test(test_df: pd.DataFrame, tamano: int, semilla: int | None = None) -> pd.DataFrame:
+    """Devuelve una muestra del test estratificada por 'label' (fallback aleatorio si no es posible)."""
     tamano = min(tamano, len(test_df))
-    return test_df.sample(n=tamano, random_state=semilla)
+    try:
+        from sklearn.model_selection import train_test_split
+        # train_size = tamano -> devolvemos 'sample' con ese tamaño
+        sample, _ = train_test_split(
+            test_df, train_size=tamano, stratify=test_df["label"], random_state=semilla
+        )
+        return sample
+    except Exception:
+        return test_df.sample(n=tamano, random_state=semilla)

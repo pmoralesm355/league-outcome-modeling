@@ -1,4 +1,5 @@
 import argparse
+import pandas as pd
 from carga_datos import cargar_dataset_poker, muestrear_test
 from caracteristicas import construir_matriz_caracteristicas
 from entrenamiento_modelos import crear_modelos, entrenar_modelos
@@ -20,13 +21,37 @@ def main():
     train_df, test_df = cargar_dataset_poker()
     test_sample = muestrear_test(test_df, args.test_n)
     print("Tamaño train:", train_df.shape, " - Tamaño test (muestra):", test_sample.shape)
+
+    #  EDA mínima requerida (variables crudas) 
     print("\nDistribución de clases (train):")
     print(train_df["label"].value_counts(normalize=True).sort_index())
 
+    print("\nEDA rápida de rangos (R1..R5): top-5 proporciones por columna")
+    for c in [f"R{i}" for i in range(1, 6)]:
+        vc = train_df[c].value_counts(normalize=True).round(3).head(5)
+        print(f"{c}: {vc.to_dict()}")
+
+    print("\nEDA rápida de palos (S1..S5): proporciones por columna")
+    for c in [f"S{i}" for i in range(1, 6)]:
+        vc = train_df[c].value_counts(normalize=True).round(3)
+        print(f"{c}: {vc.to_dict()}")
+
+    #  Features 
     X_train, y_train = construir_matriz_caracteristicas(train_df)
     X_test,  y_test  = construir_matriz_caracteristicas(test_sample)
     print("\nAtributos generados:", X_train.shape[1])
 
+    # correlación simple de features derivadas
+    try:
+        corr = pd.concat([X_train, pd.Series(y_train, name="label")], axis=1)\
+                 .corr(numeric_only=True)["label"]\
+                 .sort_values(ascending=False).head(15)
+        print("\nTop-15 correlaciones (features vs. label):")
+        print(corr)
+    except Exception as e:
+        print("\n[Info] No se pudo calcular correlaciones:", e)
+
+    # Modelos
     rf, hgb, pesos = crear_modelos(y_train)
     rf, hgb = entrenar_modelos(rf, hgb, X_train, y_train, pesos)
 
