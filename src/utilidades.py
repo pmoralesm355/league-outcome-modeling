@@ -184,12 +184,32 @@ def scatter_png(
     fig.savefig(path_png)
     plt.close(fig)
 
-def put_figure_formula(fig: plt.Figure, text: str, loc: str = "upper left", fontsize: int = 12):
-    locs = {"upper left":(0.015,0.985,"left","top"),"upper right":(0.985,0.985,"right","top"),
-            "lower left":(0.015,0.015,"left","bottom"),"lower right":(0.985,0.015,"right","bottom")}
-    x0,y0,ha,va = locs.get(loc, (0.015,0.985,"left","top"))
-    fig.text(x0, y0, text, ha=ha, va=va, fontsize=fontsize,
-             bbox=dict(boxstyle="round,pad=0.45", fc="white", ec="#BBBBBB", alpha=0.95))
+def put_axes_formula(
+    ax: plt.Axes,
+    text: str,
+    loc: str = "upper left",
+    fontsize: int = 12,
+    linespacing: float = 1.25,
+    bg_alpha: float = 0.98,
+    pad: float = 0.48
+):
+    locs = {
+        "upper left":  (0.02, 0.98, "left",  "top"),
+        "upper right": (0.98, 0.98, "right", "top"),
+        "lower left":  (0.02, 0.02, "left",  "bottom"),
+        "lower right": (0.98, 0.02, "right", "bottom"),
+    }
+    x0, y0, ha, va = locs.get(loc, (0.02, 0.98, "left", "top"))
+
+    ax.text(
+        x0, y0, text,
+        transform=ax.transAxes, 
+        ha=ha, va=va,
+        fontsize=fontsize,
+        linespacing=linespacing,
+        bbox=dict(boxstyle=f"round,pad={pad}", fc="white", ec="#BDBDBD", alpha=bg_alpha),
+        zorder=5, clip_on=False   
+    )
 
 def barh_diff_png(
     labels, diffs, path_png: str | Path, title: str, xlabel: str,

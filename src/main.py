@@ -8,8 +8,8 @@ from matplotlib import pyplot as plt
 from configuracion import ConfiguracionSimulacion
 from utilidades import (
     crear_generador_aleatorio, asegurar_directorio,
-    guardar_dataframe_como_tabla_png, scatter_png, put_figure_formula,
-    barh_diff_png
+    guardar_dataframe_como_tabla_png, scatter_png,
+    barh_diff_png, put_axes_formula
 )
 from generador_calendario import generar_calendario_doble_vuelta
 from modelos_probabilidad import simular_goles_equipo_poisson, calcular_puntos_por_resultado
@@ -173,12 +173,15 @@ def main():
     ax5.set_ylabel("Varianza de puntos (Teoría)")
 
     teoria_box = (
-        r"$D=G_h-G_a\sim{\rm Skellam}(\mu_h,\mu_a)$" "\n"
-        r"$p_W=1-F(0),\; p_D=f(0),\; p_L=F(-1)$" "\n"
-        r"$E=3p_W+1p_D,\quad {\rm Var}=\sum_{x\in\{0,1,3\}} (x-E)^2P(X=x)$" "\n"
-        r"${\rm Temporada:}\ E_i=\sum_m E_{i,m},\ {\rm Var}_i=\sum_m {\rm Var}_{i,m}$"
+        r"$D = G_h - G_a \sim \mathrm{Skellam}(\mu_h,\mu_a)$" "\n"
+        r"$p_W = 1 - F(0),\ \ p_D = f(0),\ \ p_L = F(-1)$" "\n"
+        r"$E = 3\,p_W + p_D$" "\n"
+        r"$\mathrm{Var} = \sum_{x\in\{0,1,3\}} (x - E)^2\,P(X{=}x)$" "\n"
+        r"$\mathrm{Temporada:}\ E_i=\sum_m E_{i,m},\ \ \mathrm{Var}_i=\sum_m \mathrm{Var}_{i,m}$"
     )
-    put_figure_formula(fig5, teoria_box, loc="upper left", fontsize=12)
+
+    put_axes_formula(ax5, teoria_box, loc="upper left", fontsize=13, linespacing=1.25, bg_alpha=0.98)
+
     fig5.tight_layout()
     fig5.savefig(out_dir / "05_theory_mean_vs_variance_scatter.png")
     plt.close(fig5)
